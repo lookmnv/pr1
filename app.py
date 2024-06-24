@@ -1,35 +1,32 @@
-import json
+import os
 import psycopg2
+import time
+import sys
+import logging
 
-#логин:
-#alex
-#пароль:
-#your_password
+def get_db_version():
+    try:
+        conn = psycopg2.connect(
+            dbname=os.getenv('POSTGRES_DB'),
+            user=os.getenv('POSTGRES_USER'),
+            password=os.getenv('POSTGRES_PASSWORD'),
+            host='db'
+        )
+        with conn.cursor() as cur:
+            cur.execute("SELECT version()")
+            version = cur.fetchone()
+            logging.info(f"DB Version: {version[0]}")
+        conn.close()
+    except Exception as e:
+        logging.error(f"Error connecting to DB: {e}")
 
+if __name__ == "__main__":
+    interval = int(os.getenv('CHECK_INTERVAL', '300'))  # Default to 5 minutes
+    log_file = os.getenv('LOG_FILE')
 
-# Читаем параметры подключения из файла
-with  open("config.json", "r") as f:
-    data = json.load(f)
-    host = data["database"]['host']
-    port = data["database"]['port']
-    database = data["database"]['database']
-    user = input("Введите логин пользователя: ")
-    password = input("Введите пароль пользователя: ")
+    if log_file:
+        logging.basicConfig(filename=log_file, filemode='a', level=logging.INFO)
 
-# Подключение к базе данных
-connection = psycopg2.connect(
-    host=host,
-    port=port,
-    database=database,
-    user=user,
-    password=password
-)
-
-# Выполнение SQL-запроса
-with connection.cursor() as cursor:
-    cursor.execute("SELECT version();")
-    version = cursor.fetchone()[0]
-    print(f"Версия PostgreSQL: {version}")
-
-# Закрываем соединение
-connection.close()
+    while True:
+        get_db_version()
+        time.sleep(interval)
