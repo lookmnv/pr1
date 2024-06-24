@@ -1,13 +1,27 @@
 version: '3'
 services:
-  pinger:
-    build: .
-    env_file: .env
-    depends_on:
-      - db
-  db:
-    image: postgres:16
+  postgres-db:
+    image: postgres:13
     environment:
-      POSTGRES_DB: mydatabase
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
+      POSTGRES_USER: books_user
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: books_db
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  app-1:
+    build: .
+    environment:
+      DB_HOST: postgres-db
+      DB_USER: books_user
+      DB_PASSWORD: password123
+      DB_NAME: books_db
+    depends_on:
+      - postgres-db
+    stdin_open: true
+    tty: true
+
+volumes:
+  db-data:
